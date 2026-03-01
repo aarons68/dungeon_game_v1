@@ -3,9 +3,7 @@
 #define RAYMATH_STATIC_INLINE
 #include "raymath.h"           // Include this AFTER your player header
 
-extern Player* playerObject;
-extern std::string gameState;
-extern bool insideInventory; 
+extern int worldMap[MAP_HEIGHT][MAP_WIDTH];
 
 // START CONSTRUCTOR
 Player::Player(float x, float y) {
@@ -15,31 +13,31 @@ Player::Player(float x, float y) {
 
     // inventory management
     this->currInvSelected.active = false;
+
+    this->nearChest = false;
+    this->nearExit = false;
 }
 // END CONSTRUCTOR
 
 // START drawPlayer
-void Player::drawPlayer() {
+void Player::drawPlayer(std::string gameState) {
     DrawRectangle(this->pos.x - PLAYER_SIZE/2, this->pos.y - PLAYER_SIZE/2, PLAYER_SIZE, PLAYER_SIZE, RAYWHITE);
 }
 
 //START updatePlayer
-void Player::updatePlayer() {
+void Player::updatePlayer(std::string& gameState, bool& insideInventory, int worldMap[MAP_HEIGHT][MAP_WIDTH], std::vector<Chest>& chests, Chest*& openChest) {
     // call movement updating
-    this->playerMovement();
-    this->checkInteractions();
+    this->playerMovement(worldMap);
+    this->checkInteractions(gameState, insideInventory, worldMap, chests, openChest);
 }
 
 // START PLAYER MOVEMENT
-void Player::playerMovement() {
+void Player::playerMovement(int worldMap[MAP_HEIGHT][MAP_WIDTH]) {
     float dx = 0; float dy = 0;
     if (IsKeyDown(KEY_W)) dy -= PLAYER_SPEED;
     if (IsKeyDown(KEY_S)) dy += PLAYER_SPEED;
     if (IsKeyDown(KEY_A)) dx -= PLAYER_SPEED;
     if (IsKeyDown(KEY_D)) dx += PLAYER_SPEED;
-
-    // The "Padding" represents the empty space in a 32px tile (10px on each side)
-    float padding = 10.0f; 
 
     auto isPhysicalWall = [&](float x, float y, float moveX, float moveY) {
         //find which tile 
@@ -54,11 +52,11 @@ void Player::playerMovement() {
         if (localX < 0) localX += TILE_SIZE;
 
         // for collision with walls on right
-        if (moveX > 0 && localX < padding) return false; 
+        if (moveX > 0 && localX < PLAYER_COLL_PADDING) return false; 
         //for collision with walls on left
-        if (moveX < 0 && localX > (TILE_SIZE - padding)) return false;
+        if (moveX < 0 && localX > (TILE_SIZE - PLAYER_COLL_PADDING)) return false;
 
-        return true; // If we've pushed past the padding, it's a hit
+        return true;
     };
 
     float halfSize = (PLAYER_SIZE / 2.0f) - 1.0f;
@@ -94,19 +92,27 @@ void Player::playerMovement() {
 }
 
 // START openInventory
-void Player::openInventory() {
-    this->playerInventory.drawInventory();
+void Player::openInventory(Chest* openChest) {
+    ClearBackground(GRAY);
+    if (openChest == nullptr) {
+        // solo — full size, centered
+        this->playerInventory.drawInventory(this->currInvSelected, 0.0f, 1.0f);
+    } else {
+        // two inventories side by side — scale down to half
+        this->playerInventory.drawInventory(this->currInvSelected, 0.0f, 0.5f);
+        openChest->inventory.drawInventory(this->currInvSelected, (float)DISPLAY_SIZE / 2.0f, 0.5f);
+    }
 }
 
-void Player::checkInteractions() {
+void Player::checkInteractions(std::string& gameState, bool& insideInventory, int worldMap[MAP_HEIGHT][MAP_WIDTH], std::vector<Chest>& chests, Chest*& openChest) {
     // Convert player world position to grid coordinates
     int tx = (int)(this->pos.x / TILE_SIZE);
     int ty = (int)(this->pos.y / TILE_SIZE);
 
-    bool nearChest = false;
-    bool nearExit = false;
+    this->nearChest = false;
+    this->nearExit = false;
 
-    // Check 3x3 area around player for a '2' (Chest)
+    // check in 3x3 surrounding tiles for chest or exit
     for (int y = -1; y <= 1; y++) {
         for (int x = -1; x <= 1; x++) {
             int cx = tx + x;
@@ -114,29 +120,29 @@ void Player::checkInteractions() {
 
             if (cx >= 0 && cx < MAP_WIDTH && cy >= 0 && cy < MAP_HEIGHT) {
                 if (worldMap[cy][cx] == 2) {
-                    nearChest = true;
+                    this->nearChest = true;
                     
-                    // If player presses F while near a chest
+                    //if f near chest
                     if (IsKeyPressed(KEY_F)) {
+                        for (auto& chest : chests) {
+                        if (chest.mapX == cx && chest.mapY == cy) {
+                            openChest = &chest;
+                            break;
+                        }
+                    }
                         gameState = "inventory";
                         insideInventory = true;
-                        // Optional: worldMap[cy][cx] = 0; // Remove chest after opening
                     }
                 }
                 if (worldMap[cy][cx] == 3) {
-                    nearExit = true;
-                    
-                    // If player presses F while near a chest
+                    this->nearExit = true;
+                    //press f near exit
                     if (IsKeyPressed(KEY_F)) {
-                        DrawText("PRESS [F] TO EXIT MAP", DISPLAY_SIZE/2 - 100, DISPLAY_SIZE - 100, 20, GOLD);
+                        //do sum 
+                        return;
                     }
                 }
             }
         }
-    }
-
-    // Draw the prompt if near a chest
-    if (nearChest && gameState == "play") {
-        DrawText("PRESS [F] TO OPEN CHEST", DISPLAY_SIZE/2 - 100, DISPLAY_SIZE - 100, 20, GOLD);
     }
 }

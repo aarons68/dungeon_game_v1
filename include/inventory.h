@@ -2,8 +2,12 @@
 #define INVENTORY_H
 
 #include "raylib.h"
+#include "constants.h"
 #include <vector>
 #include <string>
+
+class Player;
+class Inventory;
 
 // Struct to handle the "selected" vector (x, y, id)
 struct Selected {
@@ -11,6 +15,7 @@ struct Selected {
     int y;
     int id;
     bool active = false;
+    Inventory* sourceInv = nullptr;
 };
 
 struct Int2 {
@@ -37,18 +42,19 @@ class Inventory {
 public:
     int invSize;
     std::vector<std::vector<InventoryItem>> grid;
-    float invTileSize;
 
     //START CONSTRUCTOR
-    Inventory();
+    Inventory(int size=INV_START_SIZE);
     // END CONSTRUCTOR
 
     // START drawInventory
-    void drawInventory();
+    void drawInventory(Selected& selected, float xOffset = 0.0f, float scale = 1.0f);
 };
 
-// Functions from your JS helpers
-void inventoryMouseHandler();
-void placeObject(Inventory& srcInventory, Inventory& targetInv, Selected selected, Int2 target);
+// helpers
+void inventoryMouseHandler(Inventory& inv, Selected& selected, float xOffset = 0.0f, float scale = 1.0f);
+void placeObject(Inventory& target, Selected& selected, Int2 targetPos);
+
+float calcTileSize(float scale);
 
 #endif

@@ -2,10 +2,8 @@
 #include "../include/player.h"
 #include "../include/constants.h"
 
-// Accessing globals from main.cpp
-extern Player* playerObject;
-extern int invIdCounter;
 const float padding_factor = 6.0f;
+extern int invIdCounter;
 
 InventoryItem::InventoryItem(std::string type, int id, int width, int height, Int2 position) {
     this->type = type;
@@ -16,111 +14,130 @@ InventoryItem::InventoryItem(std::string type, int id, int width, int height, In
     this->isRotated = false;
 }
 
-Inventory::Inventory() {
-    this->invSize = INV_START_SIZE;
+Inventory::Inventory(int size) {
+    this->invSize = size;
     this->grid.resize(this->invSize, std::vector<InventoryItem>(this->invSize, InventoryItem("none")));
 
-    // Dynamic tile size calculation based on DISPLAY_SIZE
-    this->invTileSize = (2.0f * (static_cast<float>(DISPLAY_SIZE) / 3.0f)) / static_cast<float>(this->invSize);
 
-    this->grid[4][5] = InventoryItem("sword", 44, 1, 2, {0,0});
-    this->grid[5][5] = InventoryItem("sword", 44, 1, 2, {0,1});
+    this->grid[3][1] = InventoryItem("sword", invIdCounter, 1, 2, {0,0});
+    this->grid[4][1] = InventoryItem("sword", invIdCounter, 1, 2, {0,1});
+    invIdCounter ++;
 
-    this->grid[7][8] = InventoryItem("sword", 22, 1, 3, {0,0});
-    this->grid[8][8] = InventoryItem("sword", 22, 1, 3, {0,1});        
-    this->grid[9][8] = InventoryItem("sword", 22, 1, 3, {0,2});
+    this->grid[0][2] = InventoryItem("sword", invIdCounter, 1, 3, {0,0});
+    this->grid[0][2] = InventoryItem("sword", invIdCounter, 1, 3, {0,1});        
+    this->grid[0][2] = InventoryItem("sword", invIdCounter, 1, 3, {0,2});
+    invIdCounter ++;
 
-    this->grid[1][8] = InventoryItem("sword", 34, 2, 3, {0,0});
-    this->grid[2][8] = InventoryItem("sword", 34, 2, 3, {0,1});        
-    this->grid[3][8] = InventoryItem("sword", 34, 2, 3, {0,2});
-    this->grid[1][9] = InventoryItem("sword", 34, 2, 3, {1,0});
-    this->grid[2][9] = InventoryItem("sword", 34, 2, 3, {1,1});        
-    this->grid[3][9] = InventoryItem("sword", 34, 2, 3, {1,2});
+    this->grid[1][3] = InventoryItem("sword", invIdCounter, 2, 3, {0,0});
+    this->grid[2][3] = InventoryItem("sword", invIdCounter, 2, 3, {0,1});        
+    this->grid[3][3] = InventoryItem("sword", invIdCounter, 2, 3, {0,2});
+    this->grid[1][4] = InventoryItem("sword", invIdCounter, 2, 3, {1,0});
+    this->grid[2][4] = InventoryItem("sword", invIdCounter, 2, 3, {1,1});        
+    this->grid[3][4] = InventoryItem("sword", invIdCounter, 2, 3, {1,2});
+    invIdCounter ++;
 }
 
 // START drawInventory
-void Inventory::drawInventory() {
-    // xpos and ypos to be used layer
-    float xPos;
-    float yPos;
-    
-    ClearBackground(GRAY);
-    // draw each square
+void Inventory::drawInventory(Selected& selected, float xOffset, float scale) {
+    float tileSize = calcTileSize(scale);
+    float totalWidth = tileSize * this->invSize;
+    float totalHeight = tileSize * this->invSize;
+
+    float halfScreen = (float)DISPLAY_SIZE / 2.0f;
+    float startY = ((float)DISPLAY_SIZE - totalHeight) / 2.0f;
+    float startX;
+
+    if(scale < 1.0f) {
+        startX = xOffset + (halfScreen - totalWidth) / 2.0f;
+    } else {
+        startX = ((float)DISPLAY_SIZE - totalWidth) / 2.0f;
+    }
+
     for(int i = 0; i < this->invSize; i++){
         for(int j = 0; j < this->invSize; j++){
-            // Use DISPLAY_SIZE to keep inventory centered at 2/3 of screen
-            xPos = static_cast<float>(DISPLAY_SIZE)/padding_factor + j * this->invTileSize;
-            yPos = static_cast<float>(DISPLAY_SIZE)/padding_factor + i * this->invTileSize;
+            float xPos = startX + j * tileSize;
+            float yPos = startY + i * tileSize;
             
-            if(!playerObject->currInvSelected.active || this->grid[i][j].invItemId != playerObject->currInvSelected.id){
-                // switch for items in grid
+            if(!selected.active || this->grid[i][j].invItemId != selected.id){
                 if(this->grid[i][j].type == "none") {
-                    DrawRectangleLines(xPos, yPos, this->invTileSize, this->invTileSize, BLACK);
+                    DrawRectangleLines(xPos, yPos, tileSize, tileSize, BLACK);
                 } else if(this->grid[i][j].type == "sword") {
-                    DrawRectangle(xPos, yPos, this->invTileSize, this->invTileSize, YELLOW);
-                    DrawRectangleLines(xPos, yPos, this->invTileSize, this->invTileSize, BLACK);
+                    DrawRectangle(xPos, yPos, tileSize, tileSize, YELLOW);
+                    DrawRectangleLines(xPos, yPos, tileSize, tileSize, BLACK);
                 }
             } else {
-                DrawRectangleLines(xPos, yPos, this->invTileSize, this->invTileSize, BLACK);
+                DrawRectangleLines(xPos, yPos, tileSize, tileSize, BLACK);
             }
         }
     }
 
-    if(playerObject->currInvSelected.active){
-        // Grab the actual object data from the grid
-        int selectedX = playerObject->currInvSelected.x;
-        int selectedY = playerObject->currInvSelected.y;
+    if(selected.active && selected.sourceInv == this){
+        int selectedX = selected.x;
+        int selectedY = selected.y;
         InventoryItem& selectedObject = this->grid[selectedY][selectedX];
         
-        int width = selectedObject.width;
-        int height = selectedObject.height;
+        int width = selectedObject.isRotated ? selectedObject.height : selectedObject.width;
+        int height = selectedObject.isRotated ? selectedObject.width : selectedObject.height;
 
-        if(selectedObject.isRotated){
-            width = selectedObject.height;
-            height = selectedObject.width;
-        }
-
-        // Loop through the width and height of the object to draw all its tiles
         for(int i = 0; i < height; i++){
             for(int j = 0; j < width; j++){
-                // Calculate relative drawing position (centered on mouse)
-                float drawPosX = (static_cast<float>(GetMouseX()) - this->invTileSize/2.0f) + (static_cast<float>(j) - static_cast<float>(selectedObject.position.x)) * this->invTileSize;
-                float drawPosY = (static_cast<float>(GetMouseY()) - this->invTileSize/2.0f) + (static_cast<float>(i) - static_cast<float>(selectedObject.position.y)) * this->invTileSize;
+                float drawPosX = (static_cast<float>(GetMouseX()) - tileSize/2.0f) + (static_cast<float>(j) - static_cast<float>(selectedObject.position.x)) * tileSize;
+                float drawPosY = (static_cast<float>(GetMouseY()) - tileSize/2.0f) + (static_cast<float>(i) - static_cast<float>(selectedObject.position.y)) * tileSize;
                 
-                DrawRectangle(drawPosX, drawPosY, this->invTileSize, this->invTileSize, YELLOW); 
-                DrawRectangleLines(drawPosX, drawPosY, this->invTileSize, this->invTileSize, BLACK);
+                DrawRectangle(drawPosX, drawPosY, tileSize, tileSize, YELLOW); 
+                DrawRectangleLines(drawPosX, drawPosY, tileSize, tileSize, BLACK);
             }
         }
     }
 }
 // END drawInventory
 
+//helper for multiple sized inventories
+float calcTileSize(float scale) {
+    float regionWidth = (float)DISPLAY_SIZE / (scale < 1.0f ? 2.0f : 1.0f);
+    float regionHeight = (float)DISPLAY_SIZE;
+    float padding = 100.0f;
+    
+    float tileFromWidth = (regionWidth - padding) / INV_MAX_SIZE;
+    float tileFromHeight = (regionHeight - padding) / INV_MAX_SIZE;
+    
+    return std::min(tileFromWidth, tileFromHeight);
+}
+
 // START inventoryMouseHandler
-void inventoryMouseHandler(){
-  //if mouse in inventory bounds
-  float mX = static_cast<float>(GetMouseX());
-  float mY = static_cast<float>(GetMouseY());
-  float boundsStart = static_cast<float>(DISPLAY_SIZE) / padding_factor;
-  float boundsEnd = static_cast<float>(DISPLAY_SIZE) - boundsStart;
+void inventoryMouseHandler(Inventory& inv, Selected& selected, float xOffset, float scale) {
+    float tileSize = calcTileSize(scale);
+    float totalWidth = tileSize * inv.invSize;
+    float totalHeight = tileSize * inv.invSize;
+    
+    float halfScreen = (float)DISPLAY_SIZE / 2.0f;
+    float startY = ((float)DISPLAY_SIZE - totalHeight) / 2.0f;
+    float startX;
+    
+    if(scale < 1.0f) {
+        startX = xOffset + (halfScreen - totalWidth) / 2.0f;
+    } else {
+        startX = ((float)DISPLAY_SIZE - totalWidth) / 2.0f;
+    }
 
-    if(mX > boundsStart && mX < boundsEnd && mY > boundsStart && mY < boundsEnd){
+    float mX = static_cast<float>(GetMouseX());
+    float mY = static_cast<float>(GetMouseY());
+
+    if(mX > startX && mX < startX + totalWidth && mY > startY && mY < startY + totalHeight){
         Int2 mouseTile;
+        mouseTile.x = static_cast<int>((mX - startX) / tileSize);
+        mouseTile.y = static_cast<int>((mY - startY) / tileSize);
 
-        mouseTile.x = static_cast<int>((mX - boundsStart) / playerObject->playerInventory.invTileSize);
-        mouseTile.y = static_cast<int>((mY - boundsStart) / playerObject->playerInventory.invTileSize);
+        if(mouseTile.x < 0 || mouseTile.x >= inv.invSize || mouseTile.y < 0 || mouseTile.y >= inv.invSize) return;
         
         if(IsMouseButtonPressed(MOUSE_LEFT_BUTTON)){
-            //first if player has no object selected
-            if(!playerObject->currInvSelected.active){
-                //if clicking empty tile, select this as new object
-                if(playerObject->playerInventory.grid[mouseTile.y][mouseTile.x].type != "none"){
-                    playerObject->currInvSelected = {mouseTile.x, mouseTile.y, playerObject->playerInventory.grid[mouseTile.y][mouseTile.x].invItemId, true};
+            if(!selected.active){
+                if(inv.grid[mouseTile.y][mouseTile.x].type != "none"){
+                    selected = {mouseTile.x, mouseTile.y, inv.grid[mouseTile.y][mouseTile.x].invItemId, true, &inv};
                 }   
-            }
-            //if player has object selected
-            else{
-                if(playerObject->playerInventory.grid[mouseTile.y][mouseTile.x].type == "none" || playerObject->playerInventory.grid[mouseTile.y][mouseTile.x].invItemId == playerObject->playerInventory.grid[playerObject->currInvSelected.y][playerObject->currInvSelected.x].invItemId){
-                    placeObject(playerObject->playerInventory, playerObject->playerInventory, playerObject->currInvSelected, mouseTile);
+            } else {
+                if(inv.grid[mouseTile.y][mouseTile.x].type == "none" || inv.grid[mouseTile.y][mouseTile.x].invItemId == inv.grid[selected.y][selected.x].invItemId){
+                    placeObject(inv, selected, mouseTile);
                 }
             }
         }
@@ -129,14 +146,18 @@ void inventoryMouseHandler(){
 // END inventoryMouseHandler
 
 // START placeObject
-void placeObject(Inventory& srcInventory, Inventory& targetInv, Selected selected, Int2 target){
-    InventoryItem& selectedObject = srcInventory.grid[selected.y][selected.x];
+void placeObject(Inventory& target, Selected& selected, Int2 targetPos){
+    if(selected.sourceInv == nullptr) return;
+    Inventory& src = *selected.sourceInv;
+    InventoryItem& selectedObject = src.grid[selected.y][selected.x];
+
 
     //if 1x1 item
     if(selectedObject.height == 1 && selectedObject.width == 1){
-        targetInv.grid[target.y][target.x] = srcInventory.grid[selected.y][selected.x];
-        srcInventory.grid[selected.y][selected.x] = InventoryItem("none");
-        playerObject->currInvSelected.active = false;
+        target.grid[targetPos.y][targetPos.x] = src.grid[selected.y][selected.x];
+        src.grid[selected.y][selected.x] = InventoryItem("none");
+        selected.active = false;
+        selected.sourceInv = nullptr;
     }
     //if larger than 1x1 item
     else{
@@ -151,11 +172,11 @@ void placeObject(Inventory& srcInventory, Inventory& targetInv, Selected selecte
             height = selectedObject.width;
         }
         
-        Int2 targetStartingPos = {target.x - selectedObject.position.x, target.y - selectedObject.position.y};
+        Int2 targetStartingPos = {targetPos.x - selectedObject.position.x, targetPos.y - selectedObject.position.y};
 
         //check if in bounds
-        if(targetStartingPos.x < 0 || targetStartingPos.x + width > targetInv.invSize || targetStartingPos.y < 0 || targetStartingPos.y + height > targetInv.invSize){
-            playerObject->currInvSelected.active = false;
+        if(targetStartingPos.x < 0 || targetStartingPos.x + width > target.invSize || targetStartingPos.y < 0 || targetStartingPos.y + height > target.invSize){
+            selected.active = false;
             return;
         }
         
@@ -163,7 +184,7 @@ void placeObject(Inventory& srcInventory, Inventory& targetInv, Selected selecte
         for(int i = 0; i < height; i++){
             for(int j = 0; j < width; j++)
             {
-                if(targetInv.grid[i + targetStartingPos.y][targetStartingPos.x + j].type != "none" && targetInv.grid[i + targetStartingPos.y][targetStartingPos.x + j].invItemId != selectedObject.invItemId){
+                if(target.grid[i + targetStartingPos.y][targetStartingPos.x + j].type != "none" && target.grid[i + targetStartingPos.y][targetStartingPos.x + j].invItemId != selectedObject.invItemId){
                     return;
                 }
             }
@@ -173,12 +194,12 @@ void placeObject(Inventory& srcInventory, Inventory& targetInv, Selected selecte
         std::vector<InventoryItem> clipboard;
         int heldId = selectedObject.invItemId;
 
-        for(int i = 0; i < srcInventory.invSize; i++){
-            for(int j = 0; j < srcInventory.invSize; j++) {
-                if(srcInventory.grid[i][j].invItemId == heldId){
-                    clipboard.push_back(srcInventory.grid[i][j]);
+        for(int i = 0; i < src.invSize; i++){
+            for(int j = 0; j < src.invSize; j++) {
+                if(src.grid[i][j].invItemId == heldId){
+                    clipboard.push_back(src.grid[i][j]);
                     // erase from the real grid
-                    srcInventory.grid[i][j] = InventoryItem("none");
+                    src.grid[i][j] = InventoryItem("none");
                 }
             }
         }
@@ -187,10 +208,11 @@ void placeObject(Inventory& srcInventory, Inventory& targetInv, Selected selecte
         for(const auto& piece : clipboard) {
             int finalX = targetStartingPos.x + piece.position.x;
             int finalY = targetStartingPos.y + piece.position.y;
-            targetInv.grid[finalY][finalX] = piece;
+            target.grid[finalY][finalX] = piece;
         }
         
-        playerObject->currInvSelected.active = false;
+        selected.active = false;
+        selected.sourceInv = nullptr;
     }
 }
 // END placeObject

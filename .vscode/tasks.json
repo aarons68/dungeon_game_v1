@@ -12,6 +12,7 @@
                 "${workspaceFolder}/main.cpp",
                 "${workspaceFolder}/src/inventory.cpp",
                 "${workspaceFolder}/src/player.cpp",
+                "${workspaceFolder}/src/textureProcess.cpp",
                 "-o",
                 "${workspaceFolder}/game",
                 "-I", "/opt/homebrew/include",

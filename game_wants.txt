@@ -7,4 +7,3 @@ Wants:
 -stairs
 -levels
 -boss fights
--
