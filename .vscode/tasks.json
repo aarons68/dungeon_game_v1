@@ -5,7 +5,25 @@
             "label": "Build My Game",
             "type": "shell",
             "command": "g++",
-            "args": ["main.cpp", "src/inventory.cpp","src/player.cpp","-o", "game.exe", "-I", "include", "-L", "lib", "-lraylib", "-lopengl32", "-lgdi32", "-lwinmm"],
+            "args": [
+                "-fcolor-diagnostics",
+                "-fansi-escape-codes",
+                "-g",
+                "${workspaceFolder}/main.cpp",
+                "${workspaceFolder}/src/inventory.cpp",
+                "${workspaceFolder}/src/player.cpp",
+                "-o",
+                "${workspaceFolder}/game",
+                "-I", "/opt/homebrew/include",
+                "-L", "/opt/homebrew/lib",
+                "-lraylib",
+                "-std=c++17",
+                "-framework", "CoreVideo",
+                "-framework", "IOKit",
+                "-framework", "Cocoa",
+                "-framework", "GLUT",
+                "-framework", "OpenGL"
+            ],
             "group": {
                 "kind": "build",
                 "isDefault": true

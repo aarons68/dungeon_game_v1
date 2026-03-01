@@ -1,0 +1,5 @@
+---
+triple:          'arm64-apple-darwin'
+binary-path:     '/Users/aaronsimpson/Desktop/games/raylib_projects/dungeon_game_v1/game'
+relocations:     []
+...

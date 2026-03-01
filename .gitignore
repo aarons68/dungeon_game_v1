@@ -1,0 +1,19 @@
+#tasks
+.vscode/tasks.json
+.vscode/launch.json
+.vscode/settings.json
+.vscode/ipch/
+
+# compiled objects
+*.exe
+*.o
+*.obj
+*.out
+# If your Mac binary is named 'game'
+game
+
+
+#os stuff
+.DS_Store
+Thumbs.db
+.vscode/tasks.json

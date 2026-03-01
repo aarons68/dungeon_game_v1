@@ -5,10 +5,10 @@
 #include <cmath>
 
 // Include your other "files" (we will make these .h files so they act like JS scripts)
-#include "inventory.h"
-#include "player.h"
-#include "constants.h"
-#include "textureProcess.h"
+#include "include/inventory.h"
+#include "include/player.h"
+#include "include/constants.h"
+#include "include/textureProcess.h"
 
 #define RAYMATH_STATIC_INLINE
 #include "raymath.h"           // Include this AFTER your player header
