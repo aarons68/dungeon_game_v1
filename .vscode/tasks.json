@@ -1,0 +1,15 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Build My Game",
+            "type": "shell",
+            "command": "g++",
+            "args": ["main.cpp", "src/inventory.cpp","src/player.cpp","-o", "game.exe", "-I", "include", "-L", "lib", "-lraylib", "-lopengl32", "-lgdi32", "-lwinmm"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            }
+        }
+    ]
+}
